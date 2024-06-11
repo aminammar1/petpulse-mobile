@@ -1,0 +1,126 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:petpulse/provider/activity_provider.dart';
+
+class FoodActivityScreen extends StatelessWidget {
+  const FoodActivityScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final foodProvider = Provider.of<ActivityProvider>(context, listen: false);
+
+    final TextEditingController foodController = TextEditingController();
+    final TextEditingController startTimeController = TextEditingController();
+    final TextEditingController calorieController = TextEditingController();
+
+    Future<void> selectTime(BuildContext context) async {
+      final localizations = MaterialLocalizations.of(context);
+      TimeOfDay? selectedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+      if (selectedTime != null) {
+        var selectedDateTime = DateTime(
+            DateTime.now().year,
+            DateTime.now().month,
+            DateTime.now().day,
+            selectedTime.hour,
+            selectedTime.minute);
+        var isoString = selectedDateTime.toIso8601String();
+        startTimeController.text = localizations.formatTimeOfDay(selectedTime);
+        foodProvider.setTime(isoString);
+      }
+    }
+
+    void createFoodActivity(BuildContext context) async {
+      foodProvider.setFood(foodController.text);
+      foodProvider.setCalorie(calorieController.text);
+      bool isSuccess = await foodProvider.createFoodActivity();
+      String message = isSuccess
+          ? 'Food activity added successfully!'
+          : 'Failed to add food activity.';
+      Color bgColor = isSuccess ? Colors.green : Colors.red;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: bgColor,
+          ),
+        );
+      }
+    }
+
+    return ChangeNotifierProvider(
+      create: (context) => ActivityProvider(),
+      child: Scaffold(
+        backgroundColor: Colors.orange[100],
+        appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              color: Colors.black,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            title: const Text('Add Food Activity'),
+            backgroundColor: Colors.orange[100]),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Consumer<ActivityProvider>(
+              builder: (context, provider, child) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Image.asset('assets/food.png'),
+                    const SizedBox(height: 30),
+                    TextField(
+                      controller: foodController,
+                      decoration: const InputDecoration(
+                        labelText: 'What did the good boi eat today?',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) => foodProvider.setFood(value),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: startTimeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Start Time',
+                        border: OutlineInputBorder(),
+                      ),
+                      onTap: () {
+                        selectTime(context);
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: calorieController,
+                      decoration: const InputDecoration(
+                        labelText: 'Calorie (cal)',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) => foodProvider.setCalorie(value),
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton(
+                      onPressed: () => createFoodActivity(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 50, vertical: 20),
+                      ),
+                      child: const Text('Create Food Activity',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
